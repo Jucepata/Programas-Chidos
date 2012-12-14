@@ -1,0 +1,168 @@
+Unit Video;
+
+ Interface
+     uses crt;
+  Type
+
+    Pantallita=Array [1..25,1..160] Of Char;
+
+    Salvar=^Pantallita;
+
+   Var
+    Pantalla:Pantallita Absolute($B800):0;
+
+  Procedure SalvarPantalla(Var Pan:Salvar);
+  Procedure RestaurarPantalla(Var Pan:Salvar);
+  Procedure Escribe(X,Y,Texto,Fondo:Byte;Cadena:String);
+  Procedure Panel(X1,Y1,X2,Y2,Texto,Fondo,Lineas:Byte;Sombra:Boolean;Titulo:String;relleno:char);
+  procedure mensajeerror(error:byte);
+
+
+  Procedure Texto(X,Y,Texto,Fondo:Byte);
+
+ Implementation
+
+  Procedure SalvarPantalla(Var Pan:Salvar);
+     Var
+       I,J:Byte;
+   Begin
+     Pan:=Nil;
+     If Memavail>4000 Then
+      Begin
+        New(Pan);
+        For I:=1 To 25 Do
+         For J:=1 to 160 Do
+           Pan^[I,J]:=Pantalla[I,J];
+      End;
+   End;
+
+  Procedure RestaurarPantalla(Var Pan:Salvar);
+     Var
+       I,J:Byte;
+   Begin
+     If Pan<>Nil Then
+      Begin
+        For I:=1 To 25 Do
+         For J:=1 to 160 Do
+           Pantalla[I,J]:=Pan^[I,J];
+        Dispose(Pan);
+        Pan:=Nil;
+      End;
+   End;
+
+  Procedure Escribe(X,Y,Texto,Fondo:Byte;Cadena:String);
+   Var
+    I:Byte;
+    Atr:Char;
+  Begin
+   If (Y>0) And (Y<26) And (X>0) And (X<81) Then
+    Begin
+     Fondo:=Fondo*16+Texto;
+     Atr:=Chr(Fondo);
+     For I:=1 To Length(Cadena) Do
+      If (X+I-1)<=80 Then
+        Begin
+         Pantalla[Y,2*(X+I)-3]:=Cadena[I];
+         Pantalla[Y,2*(X+I)-2]:=Atr;
+        End;
+    End;
+  End;
+
+ Procedure Panel(X1,Y1,X2,Y2,Texto,Fondo,Lineas:Byte;Sombra:Boolean;Titulo:String;relleno:char);
+    Var
+     I,J         :Byte;
+     CadenaLineas:String[6];
+
+  Begin
+
+    Case Lineas Of
+      0:CadenaLineas:='      ';
+      1:CadenaLineas:='Ú¿ÀÙÄ³';
+      2:CadenaLineas:='É»È¼Íº';
+    End;
+
+    Escribe(X1,Y1,Texto,Fondo,CadenaLineas[1]);
+    Escribe(X2,Y1,Texto,Fondo,CadenaLineas[2]);
+    Escribe(X1,Y2,Texto,Fondo,CadenaLineas[3]);
+    Escribe(X2,Y2,Texto,Fondo,CadenaLineas[4]);
+
+    For I:=(X1+1) To (X2-1) Do
+     Begin
+       Escribe(I,Y1,Texto,Fondo,CadenaLineas[5]);
+       Escribe(I,Y2,Texto,Fondo,CadenaLineas[5]);
+     End;
+
+    For I:=(Y1+1) To (Y2-1) Do
+     Begin
+       Escribe(X1,I,Texto,Fondo,CadenaLineas[6]);
+       Escribe(X2,I,Texto,Fondo,CadenaLineas[6]);
+     End;
+
+    For J:=(Y1+1) To (Y2-1) Do
+     For I:=(X1+1) To (X2-1) Do
+       Escribe(I,J,Texto,Fondo,relleno);
+
+    If Sombra Then
+     Begin
+      If X1>1 Then
+        For I:=(Y1+1) To (Y2+1) Do
+          If I<26 Then
+            Pantalla[I,2*(X1-1)]:=Chr(8);
+
+      If Y2<25 Then
+        For I:=(X1-1) To (X2-1) Do
+          If (I<81) And (I>0) Then
+            Pantalla[Y2+1,2*I]:=Chr(8);
+     End;
+
+    J:=X2-X1-Length(Titulo)+1;
+    J:=J Div 2;
+    Escribe(X1+J,Y1,Texto,Fondo,Titulo);
+  End;
+
+  Procedure Texto(X,Y,Texto,Fondo:Byte);
+   Var
+    I:Byte;
+    Atr:Char;
+    Cadena:string;
+
+  Begin
+   If (Y>0) And (Y<26) And (X>0) And (X<81) Then
+    Begin
+     Fondo:=Fondo*16+Texto;
+     Atr:=Chr(Fondo);
+     For I:=1 To Length(Cadena) Do
+      If (X+I-1)<=80 Then
+        Begin
+         Pantalla[Y,2*(X+I)-3]:=Cadena[I];
+         Pantalla[Y,2*(X+I)-2]:=Atr;
+        End;
+    End;
+  End;
+
+  procedure mensajeerror(error:byte);
+   var
+      pan:salvar;
+      opc:char;
+    begin
+         salvarpantalla(pan);
+         Panel(10+20,12,50,17,yellow,red,2,true,'mensaje de error',' ');
+         case error of
+          2:begin
+                 Escribe(25,14,yellow,red,'archivo no encontrado');
+            end;
+          3:begin
+                 Escribe(25,15,yellow,red,'ruta o encadenamiento no encontrada');
+            end;
+         end;
+
+           Escribe(25,15,yellow,red,'pulse <Enter> para continuar');
+           repeat
+                 opc:=readkey;
+           until opc=#13;
+
+         restaurarpantalla(pan);
+    end;
+
+ Begin
+ End.
